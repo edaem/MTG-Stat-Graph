@@ -15,7 +15,8 @@ int main(int argc, char* argv[]){
     string deckFileName;
     string line;
     map<string, int> lands, spells;
-    int count;
+    int count, deckSize, lCount, sCount;
+    int wSources, uSources, bSources, rSources, gSources;
 
     /* load cards.json */
     in.open("cards.json");
@@ -31,6 +32,8 @@ int main(int argc, char* argv[]){
     deckFileName = argv[1];
     in.open(deckFileName);
     
+    lCount = sCount = deckSize = 0;
+    wSources = uSources = bSources = rSources = gSources = 0;
     /* procceses each line of the file */
     while(getline(in, line)){
         stringstream ls, ns;
@@ -48,7 +51,7 @@ int main(int argc, char* argv[]){
         /* get the amount of the card in deck */
         ls << line;
         ls >> count;
-
+        deckSize += count;
         /* rest of the line is the card name, extracts it */
         while(!ls.eof()){
             string temp;
@@ -61,15 +64,36 @@ int main(int argc, char* argv[]){
         string type = cards[name]["type"];
         /* insert lands into the lands map */
         if(type.find("Land") != string::npos){
-            
+            /* adds to the appropriate source variable */
+            vector<string> ci = cards[name]["colorIdentity"];
+            for(int i = 0; i < ci.size(); i++){
+                //cout << "ci[" << i << "] = " << ci[i] << endl;
+                if(ci[i] == "W")
+                    wSources += count;
+                else if(ci[i] == "U")
+                    uSources += count;
+                else if(ci[i] == "B")
+                    bSources += count;
+                else if(ci[i] == "R")
+                    rSources += count;
+                else if(ci[i] == "G")
+                    gSources += count;
+            }
             lands.insert(pair<string, int>(name, count));
+            lCount += count;
         } 
         /* insert spells into the spells map */
         else{
-            cout << name << " is a spell\n";
             spells.insert(pair<string, int>(name, count));
+            sCount += count;
         }
         //cout << count << " " << cards[name]["convertedManaCost"] << endl;
     }
-    cout << "Land count: " << lands.size() << endl << "Spell cout: " << spells.size() << endl;
+    cout << "Land count: " << lCount << endl << "Spell cout: " << sCount << endl;
+    cout << "Deck size: " << deckSize << endl;
+    cout << "White sources: " << wSources << endl;
+    cout << "Blue sources: " << uSources << endl;
+    cout << "Black sources: " << bSources << endl;
+    cout << "Red sources: " << rSources << endl;
+    cout << "Green sources: " << gSources << endl;
 }
