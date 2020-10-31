@@ -1,6 +1,3 @@
-#include <cstdio>
-using namespace std;
-
 /* calculates value of n! */
  long double factorial(int n){
      long double ret = 1;
@@ -15,12 +12,13 @@ using namespace std;
  }
 
 /* Calculates the binomial coeffiecient C(n, k) */
-long double binom_coeff(int n, int k){
+long double C(int n, int k){
      return factorial(n)/ (factorial(k) * factorial(n-k));
  }
 
-/* Calculates the probability of k successes when drawing n times (without 
-replacement) from a population of size N that contains K successes */
-long double hypergeometric_distribution(int N, int K, int n, int k){
-    return (binom_coeff(K, k) * binom_coeff(N - K, n - k)) / binom_coeff(N, n);
+/* Calculates the probability (hypergeometric distribution) of k 
+successes when drawing n times (without replacement) from a population 
+of size N that contains K successes */
+long double hd(int N, int K, int n, int k){
+    return (C(K, k) * C(N - K, n - k)) / C(N, n);
 }

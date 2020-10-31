@@ -1,4 +1,5 @@
 #include "json.hpp"
+#include "hypergeometric.hpp"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
