@@ -91,8 +91,9 @@ int main(int argc, char* argv[]){
         //cout << count << " " << cards[name]["convertedManaCost"] << endl;
     }
     ofstream out("test.jgr");
-    out << "newgraph\n" << "newcurve linetype solid pts ";
-    for(int i = 0; i < 7; i++){
+    out << "newgraph\n" << "xaxis min 0 max 10\n" << "yaxis min 0 max 1\n";
+    out << "newcurve linetype solid pts ";
+    for(int i = 0; i < 10; i++){
         out << i+1 <<" " << hdgte(deckSize, lCount, 7+i, i+1) << " ";
     }
     out << endl;
