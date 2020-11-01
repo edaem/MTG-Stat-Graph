@@ -90,7 +90,13 @@ int main(int argc, char* argv[]){
         }
         //cout << count << " " << cards[name]["convertedManaCost"] << endl;
     }
-    cout << "Land count: " << lCount << endl << "Spell cout: " << sCount << endl;
+    ofstream out("test.jgr");
+    out << "newgraph\n" << "newcurve linetype solid pts ";
+    for(int i = 0; i < 7; i++){
+        out << i+1 <<" " << hdgte(deckSize, lCount, 7+i, i+1) << " ";
+    }
+    out << endl;
+    cout << "Land count: " << lCount << endl << "Spell count: " << sCount << endl;
     cout << "Deck size: " << deckSize << endl;
     cout << "White sources: " << wSources << endl;
     cout << "Blue sources: " << uSources << endl;
