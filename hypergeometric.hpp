@@ -28,7 +28,7 @@ successes when drawing n times (without replacement) from a
 population of size N that conatins K successes */
 long double hdgte(int N, int K, int n, int k){
    long double ret = 0;
-   for(int i = k; i < n; i++){
+   for(int i = k; i <= n; i++){
       ret += hd(N, K, n, i);
    }
    return ret;
