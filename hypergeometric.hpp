@@ -20,6 +20,8 @@ long double C(int n, int k){
 successes when drawing n times (without replacement) from a 
 population of size N that contains K successes */
 long double hd(int N, int K, int n, int k){
+   if(k > n || k > K)
+      return 0;
    return (C(K, k) * C(N - K, n - k)) / C(N, n);
 }
 
