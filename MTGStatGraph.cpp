@@ -3,12 +3,13 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <map>
 #include <sstream>
 #include <utility>
 
 using namespace std;
 using json = nlohmann::json;
+
+enum color {white, blue, black, red, green};
 
 /* outputs jgraph for a line graph for the given color */
 void graphcolor(ostream& out, string color, double rgb[], int deckSize, int sources){
@@ -49,8 +50,8 @@ int main(int argc, char* argv[]){
     string deckFileName;
     string line;
     int count, deckSize, lCount, sCount;
-    int wSources, uSources, bSources, rSources, gSources;
-    int wSpells, uSpells, bSpells, rSpells, gSpells;
+    int sources[5] = {0,0,0,0,0};
+    int spells[5] = {0,0,0,0,0};
 
     /* load cards.json */
     in.open("cards.json");
@@ -67,8 +68,6 @@ int main(int argc, char* argv[]){
     in.open(deckFileName);
     
     lCount = sCount = deckSize = 0;
-    wSources = uSources = bSources = rSources = gSources = 0;
-    wSpells = uSpells = bSpells = rSpells = gSpells = 0;
     /* procceses each line of the file */
     while(getline(in, line)){
         stringstream ls, ns;
@@ -102,17 +101,16 @@ int main(int argc, char* argv[]){
             /* adds to the appropriate source variable */
             vector<string> ci = cards[name]["colorIdentity"];
             for(int i = 0; i < ci.size(); i++){
-                //cout << "ci[" << i << "] = " << ci[i] << endl;
                 if(ci[i] == "W")
-                    wSources += count;
+                    sources[white] += count;
                 else if(ci[i] == "U")
-                    uSources += count;
+                    sources[blue] += count;
                 else if(ci[i] == "B")
-                    bSources += count;
+                    sources[black] += count;
                 else if(ci[i] == "R")
-                    rSources += count;
+                    sources[red] += count;
                 else if(ci[i] == "G")
-                    gSources += count;
+                    sources[green] += count;
             }
             lCount += count;
         } 
@@ -122,15 +120,15 @@ int main(int argc, char* argv[]){
             for(int i = 0; i < ci.size(); i++){
                 //cout << "ci[" << i << "] = " << ci[i] << endl;
                 if(ci[i] == "W")
-                    wSpells += count;
+                    spells[white] += count;
                 else if(ci[i] == "U")
-                    uSpells += count;
+                    spells[blue] += count;
                 else if(ci[i] == "B")
-                    bSpells += count;
+                    spells[black] += count;
                 else if(ci[i] == "R")
-                    rSpells += count;
+                    spells[red] += count;
                 else if(ci[i] == "G")
-                    gSpells += count;
+                    spells[green] += count;
             }
             sCount += count;
         }
@@ -148,10 +146,10 @@ int main(int argc, char* argv[]){
     }
     out << endl;
     double xtrans = -0.6, ytrans = 4;
-    if(wSources > 0 && wSpells > 0){
+    if(sources[white] > 0 && spells[white] > 0){
         out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
         double rgb[3] = {1,1,0};
-        graphcolor(out, "White", rgb, deckSize, wSources);
+        graphcolor(out, "White", rgb, deckSize, sources[white]);
         if(xtrans < 3)
             xtrans += 3.8;
         else{
@@ -159,10 +157,10 @@ int main(int argc, char* argv[]){
             xtrans = -4.2;
         }
     }
-    if(uSources > 0 && uSpells > 0){
+    if(sources[blue] > 0 && spells[blue] > 0){
         out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
         double rgb[3] = {0,0,1};
-        graphcolor(out, "Blue", rgb, deckSize, uSources);
+        graphcolor(out, "Blue", rgb, deckSize, sources[blue]);
         if(xtrans < 3)
             xtrans += 3.8;
         else{
@@ -170,10 +168,10 @@ int main(int argc, char* argv[]){
             xtrans = -4.2;
         }
     }
-    if(bSources > 0 && bSpells > 0){
+    if(sources[black] > 0 && spells[black] > 0){
         out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
         double rgb[3] = {.5,0,.5};
-        graphcolor(out, "Black", rgb, deckSize, bSources);
+        graphcolor(out, "Black", rgb, deckSize, sources[black]);
         if(xtrans < 3)
             xtrans += 3.8;
         else{
@@ -181,10 +179,10 @@ int main(int argc, char* argv[]){
             xtrans = -4.2;
         }
     }
-    if(rSources > 0 && rSpells > 0){
+    if(sources[red] > 0 && spells[red] > 0){
         out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
         double rgb[3] = {1,0,0};
-        graphcolor(out, "Red", rgb, deckSize, rSources);
+        graphcolor(out, "Red", rgb, deckSize, sources[red]);
         if(xtrans < 3)
             xtrans += 3.8;
         else{
@@ -192,10 +190,10 @@ int main(int argc, char* argv[]){
             xtrans = -4.2;
         }
     }
-    if(gSources > 0 && gSpells > 0){
+    if(sources[green] > 0 && spells[green] > 0){
         out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
         double rgb[3] = {0,1,0};
-        graphcolor(out, "Green", rgb, deckSize, gSources);
+        graphcolor(out, "Green", rgb, deckSize, sources[green]);
         if(xtrans < 3.4)
             xtrans += 3.8;
         else{
@@ -206,59 +204,57 @@ int main(int argc, char* argv[]){
     out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
     out << "xaxis no_draw_axis min 0 max 100 hash 0 yaxis no_draw_axis min 0 max 100 hash 0\n";
     double x = 0, y = 100;
-    double allSpells = wSpells + uSpells + bSpells + rSpells + gSpells;
-    cout << "allspells: " << allSpells << endl;
-    if(wSpells > 0){
+    double allSpells = spells[white] + spells[blue] + spells[black] + spells[red] + spells[green];
+    if(spells[white] > 0){
         double rgb[3] = {1,1,0};
-        x = graphbar(out, rgb, x, 100, wSpells, allSpells);
+        x = graphbar(out, rgb, x, 100, spells[white], allSpells);
     }
-    if(uSpells > 0){
+    if(spells[blue] > 0){
         double rgb[3] = {0,0,1};
-        x = graphbar(out, rgb, x, 100, uSpells, allSpells);
+        x = graphbar(out, rgb, x, 100, spells[blue], allSpells);
     }
-    if(bSpells > 0){
+    if(spells[black] > 0){
         double rgb[3] = {.5,0,.5};
-        x = graphbar(out, rgb, x, 100, bSpells, allSpells);
+        x = graphbar(out, rgb, x, 100, spells[black], allSpells);
     }
-    if(rSpells > 0){
+    if(spells[red] > 0){
         double rgb[3] = {1,0,0};
-        x = graphbar(out, rgb, x, 100, rSpells, allSpells);
+        x = graphbar(out, rgb, x, 100, spells[red], allSpells);
     }
-    if(gSpells > 0){
+    if(spells[green] > 0){
         double rgb[3] = {0,1,0};
-        x = graphbar(out, rgb, x, 100, gSpells, allSpells);
+        x = graphbar(out, rgb, x, 100, spells[green], allSpells);
     }
     out << "newstring hjc vjc font Times-Italic lgray 1 fontsize 14 x 50 y 90 : Spells\n";
 
-    double allSources = wSources + uSources + bSources + rSources + gSources;
+    double allSources = sources[white] + sources[blue] + sources[black] + sources[red] + sources[green];
     x = 0;
-    if(wSources > 0){
+    if(sources[white] > 0){
         double rgb[3] = {1,1,0};
-        x = graphbar(out, rgb, x, 60, wSources, allSources);
+        x = graphbar(out, rgb, x, 60, sources[white], allSources);
     }
-    if(uSources > 0){
+    if(sources[blue] > 0){
         double rgb[3] = {0,0,1};
-        x = graphbar(out, rgb, x, 60, uSources, allSources);
+        x = graphbar(out, rgb, x, 60, sources[blue], allSources);
     }
-    if(bSources > 0){
+    if(sources[black] > 0){
         double rgb[3] = {.5,0,.5};
-        x = graphbar(out, rgb, x, 60, bSources, allSources);
+        x = graphbar(out, rgb, x, 60, sources[black], allSources);
     }
-    if(rSources > 0){
+    if(sources[red] > 0){
         double rgb[3] = {1,0,0};
-        x = graphbar(out, rgb, x, 60, rSources, allSources);
+        x = graphbar(out, rgb, x, 60, sources[red], allSources);
     }
-    if(gSources > 0){
+    if(sources[green] > 0){
         double rgb[3] = {0,1,0};
-        x = graphbar(out, rgb, x, 60, gSources, allSources);
+        x = graphbar(out, rgb, x, 60, sources[green], allSources);
     }
     out << "newstring hjc vjc font Times-Italic lgray 1 fontsize 14 x 50 y 50 : Lands\n";
-    //out << "newline poly pts 0 100 0 80 100 80 100 100\n";
-    cout << "Land count: " << lCount << endl << "Spell count: " << sCount << endl;
-    cout << "Deck size: " << deckSize << endl;
-    cout << "White Spells: " << wSpells << endl;
-    cout << "Blue Spells: " << uSpells << endl;
-    cout << "Black Spells: " << bSpells << endl;
-    cout << "Red Spells: " << rSpells << endl;
-    cout << "Green Spells: " << gSpells << endl;
+    // cout << "Land count: " << lCount << endl << "Spell count: " << sCount << endl;
+    // cout << "Deck size: " << deckSize << endl;
+    // cout << "White Spells: " << spells[white] << endl;
+    // cout << "Blue Spells: " << spells[blue] << endl;
+    // cout << "Black Spells: " << spells[black] << endl;
+    // cout << "Red Spells: " << spells[red] << endl;
+    // cout << "Green Spells: " << spells[green] << endl;
 }
