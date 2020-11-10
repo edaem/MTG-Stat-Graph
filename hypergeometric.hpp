@@ -1,3 +1,13 @@
+/*
+   hypergeometric.cpp
+   Chauncey Meade
+   November 2nd, 2020
+
+   This file implements a hypergeometric function (hd() below) and a cumulative
+   hypergeometric function (hdgte() below), as well as two helper functions for
+   enabling the hypergeometric function.
+*/
+
 /* calculates value of n! */
  long double factorial(int n){
      long double ret = 1;

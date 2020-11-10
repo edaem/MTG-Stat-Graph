@@ -1,4 +1,13 @@
-#include "json.hpp"
+/*
+    MTGStatGraph.cpp
+    Chauncey Meade
+    November 2nd, 2020
+
+    This file implements the MTGStatGraph program. The program accepts the name of
+    a Magic: the Gathering decklist from the command line and produces a jgraph
+    file that will depict various stats about that deck.
+*/
+#include "nlohmann/json.hpp"
 #include "hypergeometric.hpp"
 #include <fstream>
 #include <iostream>
@@ -11,25 +20,36 @@ using json = nlohmann::json;
 
 enum color {white, blue, black, red, green};
 
-/* outputs jgraph for a line graph for the given color */
+/* Creates jgraph code for a line graph that depicts the percentage chance to have
+one, two, or three sources of the given color. Uses hypergeometric distribution for
+the probabilty calculation (see hypergeometric.hpp) */
 void graphcolor(ostream& out, string color, double rgb[], int deckSize, int sources){
+    /* Axis set up */
     out << "xaxis min 1 max 10 hash 1 mhash 0\nlabel : Turn #\n";
     out << "yaxis min 0 max 100\nlabel : % Chance of Having " << color << " Mana\n";
+
+    /* Curve for having a single source of a color */
     out << "newcurve color " << rgb[0] << " " << rgb[1] << " " << rgb[2];
     out << " linetype solid label : One source\n pts ";
     for(int i = 0; i < 10; i++){
         out << i+1 << " " << hdgte(deckSize, sources, 7+i, 1) * 100 << " ";
     }
+
+    /* Curve for having two sources of a color */
     out << endl << "newcurve color " << rgb[0] << " " << rgb[1] << " " << rgb[2];
     out << " linetype dashed label : Two sources \n pts ";
     for(int i = 1; i < 10; i++){
         out << i+1 << " " << hdgte(deckSize, sources, 7+i, 2) * 100 << " ";
     }
+
+    /* Curve for having three sources of a color */
     out << endl << "newcurve color " << rgb[0] << " " << rgb[1] << " " << rgb[2];
     out << " linetype dotdotdash label : Three sources\npts ";
     for(int i = 2; i < 10; i++){
         out << i+1 << " " << hdgte(deckSize, sources, 7+i, 3) * 100 << " ";
     }
+
+    /* Places the legend in the bottom right of the graph */
     out << endl << "legend x 7 y 20\n";
 }
 
@@ -37,7 +57,7 @@ void graphcolor(ostream& out, string color, double rgb[], int deckSize, int sour
 int graphbar(ostream& out, double rgb[], double x, double y, double partial, double total){
     double size = (partial/total) * 100;
     out << "newline poly pcfill " << rgb[0] << " " << rgb[1] << " " << rgb[2];
-    out << " pts " << x << " " << y << " " << x << " " << y-20 << " " << x+size; 
+    out << " pts " << x << " " << y << " " << x << " " << y-20 << " "; 
     out << x + size << " " << y-20 << " " << x + size << " " << y << endl;
 
     /* returns where the next bar should be printed */
@@ -45,21 +65,51 @@ int graphbar(ostream& out, double rgb[], double x, double y, double partial, dou
 }
 
 int main(int argc, char* argv[]){
-    ifstream in;
-    json cards;
-    string deckFileName;
-    string line;
-    int count, deckSize, lCount, sCount;
-    int sources[5] = {0,0,0,0,0};
-    int spells[5] = {0,0,0,0,0};
+    ifstream in;    /* used for reading in the json card list and the decklist file */
+    ofstream out;   /* used for writing the jgraph file */
+    json cards;     /* json container for the card file */
+    string deckFileName;    /* file name for the decklist */
+    string line;            /* for processing lines from the decklist */
+    int count;              /* holds the number of copies of a card when processing a line */
+    int deckSize;           /* number of cards in the deck */
+    int lCount;             /* number of lands in the deck */
+    int sCount;             /* number of spells in the deck */
+    double sources[5] = {0,0,0,0,0};    /* tracks the number of sources for each color */
+    double spells[5] = {0,0,0,0,0};     /* tracks the number of spells of each color */
+    double rgb[5][3];       /* used for storing and passing rgb values for each color */
+    double xPos;            /* tracks the starting xPos for the bar graph */
+    double xTrans;          /* tracks the x transposition value for drawing multiple graphs */
+    double yTrans;          /* tracks the Y transposition value for drawing multiple graphs */
+    string colorStr[5];     /* holds strings for each color name, used in graph loop */
+
+    /* Color settings for white graphs/polygons */
+    rgb[0][0] = 1; rgb[0][1] = 1; rgb[0][2] = 0;
+    colorStr[0] = "White";
+
+    /* Color settings for blue graphs/polygons */
+    rgb[1][0] = 0; rgb[1][1] = 0; rgb[1][2] = 1;
+    colorStr[1] = "Blue";
+
+    /* Color settings for black graphs/polygons */
+    rgb[2][0] = .5; rgb[2][1] = 0; rgb[2][2] = .5;
+    colorStr[2] = "Black";
+
+    /* Color settings for red graphs/polygons */
+    rgb[3][0] = 1; rgb[3][1] = 0; rgb[3][2] = 0;
+    colorStr[3] = "Red";
+
+    /* Color settings for green graphs/polygons */
+    rgb[4][0] = 0; rgb[4][1] = 1; rgb[4][2] = 0;
+    colorStr[4] = "Green";
 
     /* load cards.json */
     in.open("cards.json");
     in >> cards;
     in.close();
 
-    /* exits if there isn't at least 1 argument */
-    if(argc < 2){
+    /* exits if there isn't 1 argument */
+    if(argc != 2){
+        cout << "usage: MTGStatGraph decklistFileName\n";
         exit(1);
     }
 
@@ -80,12 +130,12 @@ int main(int argc, char* argv[]){
         if(line[line.length() - 1] == '\r'){
             line.erase(line.length() - 1, 1);
         }
-        //cout << line << " ";
 
         /* get the amount of the card in deck */
         ls << line;
         ls >> count;
         deckSize += count;
+
         /* rest of the line is the card name, extracts it */
         while(!ls.eof()){
             string temp;
@@ -96,9 +146,9 @@ int main(int argc, char* argv[]){
         }
         string name = ns.str();
         string type = cards[name]["type"];
-        /* insert lands into the lands map */
+        /* updates appropriate info if card is a land */
         if(type.find("Land") != string::npos){
-            /* adds to the appropriate source variable */
+            /* adds to the appropriate source counters */
             vector<string> ci = cards[name]["colorIdentity"];
             for(int i = 0; i < ci.size(); i++){
                 if(ci[i] == "W")
@@ -114,11 +164,11 @@ int main(int argc, char* argv[]){
             }
             lCount += count;
         } 
-        /* insert spells into the spells map */
+        /* updates appropriate info if card is a spell */
         else{
+            /* adds to the appropriate spells counters */
             vector<string> ci = cards[name]["colorIdentity"];
             for(int i = 0; i < ci.size(); i++){
-                //cout << "ci[" << i << "] = " << ci[i] << endl;
                 if(ci[i] == "W")
                     spells[white] += count;
                 else if(ci[i] == "U")
@@ -132,9 +182,11 @@ int main(int argc, char* argv[]){
             }
             sCount += count;
         }
-        //cout << count << " " << cards[name]["convertedManaCost"] << endl;
     }
-    ofstream out(deckFileName.substr(0,deckFileName.length() - 4) + ".jgr");
+
+    /* Opens the jgraph file. Name will be whatever the decklist file name is but
+    with the file extension changed to .jgr */
+    out.open(deckFileName.substr(0,deckFileName.length() - 4) + ".jgr");
 
     /* Land Drop Graph */
     out << "newgraph\n x_translate -4.2 y_translate 4\n";
@@ -145,116 +197,47 @@ int main(int argc, char* argv[]){
         out << i+1 <<" " << hdgte(deckSize, lCount, 7+i, i+1) * 100 << " ";
     }
     out << endl;
-    double xtrans = -0.6, ytrans = 4;
-    if(sources[white] > 0 && spells[white] > 0){
-        out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
-        double rgb[3] = {1,1,0};
-        graphcolor(out, "White", rgb, deckSize, sources[white]);
-        if(xtrans < 3)
-            xtrans += 3.8;
-        else{
-            ytrans -= 4;
-            xtrans = -4.2;
-        }
-    }
-    if(sources[blue] > 0 && spells[blue] > 0){
-        out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
-        double rgb[3] = {0,0,1};
-        graphcolor(out, "Blue", rgb, deckSize, sources[blue]);
-        if(xtrans < 3)
-            xtrans += 3.8;
-        else{
-            ytrans -= 4;
-            xtrans = -4.2;
-        }
-    }
-    if(sources[black] > 0 && spells[black] > 0){
-        out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
-        double rgb[3] = {.5,0,.5};
-        graphcolor(out, "Black", rgb, deckSize, sources[black]);
-        if(xtrans < 3)
-            xtrans += 3.8;
-        else{
-            ytrans -= 4;
-            xtrans = -4.2;
-        }
-    }
-    if(sources[red] > 0 && spells[red] > 0){
-        out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
-        double rgb[3] = {1,0,0};
-        graphcolor(out, "Red", rgb, deckSize, sources[red]);
-        if(xtrans < 3)
-            xtrans += 3.8;
-        else{
-            ytrans -= 4;
-            xtrans = -4.2;
-        }
-    }
-    if(sources[green] > 0 && spells[green] > 0){
-        out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
-        double rgb[3] = {0,1,0};
-        graphcolor(out, "Green", rgb, deckSize, sources[green]);
-        if(xtrans < 3.4)
-            xtrans += 3.8;
-        else{
-            ytrans -= 4;
-            xtrans = -4.2;
-        }
-    }
-    out << "newgraph\n x_translate " << xtrans << " y_translate " << ytrans << endl;
-    out << "xaxis no_draw_axis min 0 max 100 hash 0 yaxis no_draw_axis min 0 max 100 hash 0\n";
-    double x = 0, y = 100;
-    double allSpells = spells[white] + spells[blue] + spells[black] + spells[red] + spells[green];
-    if(spells[white] > 0){
-        double rgb[3] = {1,1,0};
-        x = graphbar(out, rgb, x, 100, spells[white], allSpells);
-    }
-    if(spells[blue] > 0){
-        double rgb[3] = {0,0,1};
-        x = graphbar(out, rgb, x, 100, spells[blue], allSpells);
-    }
-    if(spells[black] > 0){
-        double rgb[3] = {.5,0,.5};
-        x = graphbar(out, rgb, x, 100, spells[black], allSpells);
-    }
-    if(spells[red] > 0){
-        double rgb[3] = {1,0,0};
-        x = graphbar(out, rgb, x, 100, spells[red], allSpells);
-    }
-    if(spells[green] > 0){
-        double rgb[3] = {0,1,0};
-        x = graphbar(out, rgb, x, 100, spells[green], allSpells);
-    }
-    out << "newstring hjc vjc font Times-Italic lgray 1 fontsize 14 x 50 y 90 : Spells\n";
+    xTrans = -0.6;
+    yTrans = 4;
 
-    double allSources = sources[white] + sources[blue] + sources[black] + sources[red] + sources[green];
-    x = 0;
-    if(sources[white] > 0){
-        double rgb[3] = {1,1,0};
-        x = graphbar(out, rgb, x, 60, sources[white], allSources);
+    /* Creates graphs for each color in the deck that display the percentange chance of
+    having one, two, or three sources of that color on turns 1 through 10 */
+    for(int i = 0; i < 5; i++){
+        if(sources[i] > 0 && spells[i] > 0){
+            out << "newgraph\n x_translate " << xTrans << " y_translate " << yTrans << endl;
+            graphcolor(out, colorStr[i], rgb[i], deckSize, sources[i]);
+            if(xTrans < 3)
+                xTrans += 3.8;
+            else{
+                yTrans -= 4;
+                xTrans = -4.2;
+            }
+        }
     }
-    if(sources[blue] > 0){
-        double rgb[3] = {0,0,1};
-        x = graphbar(out, rgb, x, 60, sources[blue], allSources);
+    
+    /* Creates bar representation of the percentage of spells of each color */
+    out << "newgraph\n x_translate " << xTrans << " y_translate " << yTrans << endl;
+    out << "xaxis no_draw_axis min 0 max 100 hash 0 yaxis no_draw_axis min 0 max 100 hash 0\n";
+    xPos = 0;
+    double totalSpells = spells[white] + spells[blue] + spells[black] + spells[red] + spells[green];
+
+    for(int i = 0; i < 5; i++){
+        if(spells[i] > 0){
+            xPos = graphbar(out, rgb[i], xPos, 100, spells[i], totalSpells);
+        }
     }
-    if(sources[black] > 0){
-        double rgb[3] = {.5,0,.5};
-        x = graphbar(out, rgb, x, 60, sources[black], allSources);
+    out << "newstring hjc vjc font Helvetica  fontsize 14 x 50 y 90 : Spells\n";
+
+    /* Creates bar representation of the percentage of lands of each color */
+    double totalSources = sources[white] + sources[blue] + sources[black] + sources[red] + sources[green];
+    xPos = 0;
+    for(int i = 0; i < 5; i++){
+        if(sources[i] > 0){
+            xPos = graphbar(out, rgb[i], xPos, 60, sources[i], totalSources);
+        }
     }
-    if(sources[red] > 0){
-        double rgb[3] = {1,0,0};
-        x = graphbar(out, rgb, x, 60, sources[red], allSources);
-    }
-    if(sources[green] > 0){
-        double rgb[3] = {0,1,0};
-        x = graphbar(out, rgb, x, 60, sources[green], allSources);
-    }
-    out << "newstring hjc vjc font Times-Italic lgray 1 fontsize 14 x 50 y 50 : Lands\n";
-    // cout << "Land count: " << lCount << endl << "Spell count: " << sCount << endl;
-    // cout << "Deck size: " << deckSize << endl;
-    // cout << "White Spells: " << spells[white] << endl;
-    // cout << "Blue Spells: " << spells[blue] << endl;
-    // cout << "Black Spells: " << spells[black] << endl;
-    // cout << "Red Spells: " << spells[red] << endl;
-    // cout << "Green Spells: " << spells[green] << endl;
+    out << "newstring hjc vjc font Helvetica fontsize 14 x 50 y 50 : Lands\n";
+    out.close();
+
+    return 0;
 }
